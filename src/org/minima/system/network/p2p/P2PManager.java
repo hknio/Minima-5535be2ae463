@@ -2,7 +2,11 @@ package org.minima.system.network.p2p;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 import org.minima.database.MinimaDB;
 import org.minima.objects.Greeting;
@@ -71,8 +75,14 @@ public class P2PManager extends MessageProcessor {
         PostTimerMessage(new TimerMessage(P2PParams.NODE_NOT_ACCEPTING_CHECK_DELAY, P2P_ASSESS_CONNECTIVITY));
         PostTimerMessage(new TimerMessage(P2PParams.SAVE_DATA_DELAY, P2P_SAVE_DATA));
     }
-    public Set<InetSocketAddress> getPeers(){
-        return state.getKnownPeers();
+    
+    public ArrayList<InetSocketAddress> getPeersCopy(){
+        return state.getKnownPeersCopy();
+    }
+
+    public float getClients() {
+        // Divided by number of connections clients haves to convert client connections into num clients
+        return (float) state.getNoneP2PLinks().size() / P2PParams.MIN_NUM_CONNECTIONS;
     }
 
     protected List<Message> init(P2PState state) {
@@ -129,12 +139,13 @@ public class P2PManager extends MessageProcessor {
         if (connectionAddress != null) {
             msgs.add(new Message(P2PManager.P2P_SEND_CONNECT).addObject(ADDRESS_LITERAL, connectionAddress));
         }
+
         return msgs;
     }
 
 
     private void doDiscoveryPing(){
-        while (state.isDoingDiscoveryConnection()){
+        while (state.isDoingDiscoveryConnection() && isRunning()){
             InetSocketAddress address = P2PParams.DEFAULT_NODE_LIST.get(rand.nextInt(P2PParams.DEFAULT_NODE_LIST.size()));
             Greeting greet = NIOManager.sendPingMessage(address.getHostString(), address.getPort(), true);
             if (greet != null) {
@@ -150,7 +161,7 @@ public class P2PManager extends MessageProcessor {
                 }
             } else {
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(5000);
                 } catch (Exception ex){
                     P2PFunctions.log_debug("Wait interrupted");
                 }
@@ -159,6 +170,7 @@ public class P2PManager extends MessageProcessor {
     }
     @Override
     protected void processMessage(Message zMessage) throws Exception {
+    	
         List<Message> sendMsgs = new ArrayList<>();
         if (zMessage.isMessageType(P2PFunctions.P2P_INIT)) {
             sendMsgs.addAll(init(state));
@@ -185,7 +197,7 @@ public class P2PManager extends MessageProcessor {
         } else if (zMessage.isMessageType(P2P_LOOP)) {
             sendMsgs.addAll(processLoop(state));
             PostTimerMessage(new TimerMessage(state.getLoopDelay(), P2P_LOOP));
-
+            
         } else if (zMessage.isMessageType(P2P_RESET)) {
             P2PFunctions.log_debug("[+] P2P Reset in process");
             state.setAcceptingInLinks(GeneralParams.IS_ACCEPTING_IN_LINKS);

@@ -5,9 +5,6 @@ import java.net.NetworkInterface;
 import java.net.Socket;
 import java.net.SocketException;
 import java.time.Duration;
-import java.time.LocalDate;
-import java.time.Period;
-import java.time.ZoneId;
 import java.util.Date;
 import java.util.Enumeration;
 
@@ -20,7 +17,6 @@ import org.minima.system.network.rpc.CMDHandler;
 import org.minima.system.network.rpc.HTTPServer;
 import org.minima.system.network.webhooks.NotifyManager;
 import org.minima.system.params.GeneralParams;
-import org.minima.utils.MiniFile;
 import org.minima.utils.MiniFormat;
 import org.minima.utils.MinimaLogger;
 import org.minima.utils.json.JSONObject;
@@ -223,7 +219,12 @@ public class NetworkManager {
 		mNIOManager.PostMessage(NIOManager.NIO_SHUTDOWN);
 		
 		//Send a message to the P2P
-		mP2PManager.PostMessage(P2PFunctions.P2P_SHUTDOWN);
+		if(GeneralParams.P2P_ENABLED) {
+			((P2PManager)mP2PManager).shutdown();
+		}else {
+			mP2PManager.stopMessageProcessor();
+		}
+//		mP2PManager.PostMessage(P2PFunctions.P2P_SHUTDOWN);
 		
 		//And the notify Manager
 		mNotifyManager.shutDown();

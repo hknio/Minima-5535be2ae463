@@ -70,12 +70,10 @@ public class TxPoWChecker {
 			if(zTxPoW.getTimeMilli().isLess(median.getTxPoW().getTimeMilli())) {
 				MinimaLogger.log("Invalid TxPoW TimeMilli less than median 1 hr back "+zTxPoW.getTxPoWID());
 				return false;
+			}else if(zTxPoW.getTimeMilli().isMore(maxtime)) {
+				MinimaLogger.log("Invalid TxPoW TimeMilli more than 24 hrs in future "+zTxPoW.getTxPoWID());
+				return false;
 			}
-			//Leave for now - re-enable once network up and running again.. 
-//			else if(zTxPoW.getTimeMilli().isMore(maxtime)) {
-//				MinimaLogger.log("Invalid TxPoW TimeMilli more than 24 hrs in future "+zTxPoW.getTxPoWID());
-//				return false;
-//			}
 			
 			//Check the block difficulty is correct
 			MiniData blockdifficulty = TxPoWGenerator.getBlockDifficulty(zParentNode);
@@ -599,23 +597,39 @@ public class TxPoWChecker {
 		TxPoWDB txpdb = MinimaDB.getDB().getTxPoWDB();
 		
 		//Get all the coins..
-		if(!zTxPoW.getTransaction().isEmpty()) {
-			ArrayList<Coin> inputs = zTxPoW.getTransaction().getAllInputs();
-			for(Coin cc : inputs) {
-				if(txpdb.checkMempoolCoins(cc.getCoinID())) {
-					return true;
-				}
+		ArrayList<CoinProof> proofs = zTxPoW.getWitness().getAllCoinProofs();
+		for(CoinProof cp : proofs) {
+			if(txpdb.checkMempoolCoins(cp.getCoin().getCoinID())) {
+				return true;
 			}
 		}
-		
-		if(!zTxPoW.getBurnTransaction().isEmpty()) {
-			ArrayList<Coin> inputs = zTxPoW.getBurnTransaction().getAllInputs();
-			for(Coin cc : inputs) {
-				if(txpdb.checkMempoolCoins(cc.getCoinID())) {
-					return true;
-				}
+	
+		//And BURN Coins
+		proofs = zTxPoW.getBurnWitness().getAllCoinProofs();
+		for(CoinProof cp : proofs) {
+			if(txpdb.checkMempoolCoins(cp.getCoin().getCoinID())) {
+				return true;
 			}
 		}
+			
+//		//Get all the coins..
+//		if(!zTxPoW.getTransaction().isEmpty()) {
+//			ArrayList<Coin> inputs = zTxPoW.getTransaction().getAllInputs();
+//			for(Coin cc : inputs) {
+//				if(txpdb.checkMempoolCoins(cc.getCoinID())) {
+//					return true;
+//				}
+//			}
+//		}
+//		
+//		if(!zTxPoW.getBurnTransaction().isEmpty()) {
+//			ArrayList<Coin> inputs = zTxPoW.getBurnTransaction().getAllInputs();
+//			for(Coin cc : inputs) {
+//				if(txpdb.checkMempoolCoins(cc.getCoinID())) {
+//					return true;
+//				}
+//			}
+//		}
 		
 		return false;
 	}

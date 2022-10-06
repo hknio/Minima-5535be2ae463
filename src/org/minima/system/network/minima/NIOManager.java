@@ -483,7 +483,7 @@ public class NIOManager extends MessageProcessor {
 			
 			//Create a handler task
 			NIOMessage niomsg = new NIOMessage(uid, data);
-			niomsg.setTrace(isTrace(), mTraceFilter);
+			niomsg.setTrace(isTrace(), getTraceFilter());
 			
 			//Process it.. in a thread pool..
 			THREAD_POOL.execute(niomsg);
@@ -715,8 +715,14 @@ public class NIOManager extends MessageProcessor {
 			msg.writeDataStream(dos);
 			dos.flush();
 			
+			//Tell the NIO
+			Main.getInstance().getNIOManager().getTrafficListener().addWriteBytes(msg.getLength());
+			
 			//Load the message
 			MiniData resp = MiniData.ReadFromStream(dis);
+			
+			//Tell the NIO
+			Main.getInstance().getNIOManager().getTrafficListener().addReadBytes(resp.getLength());
 			
 			//Close the streams..
 			dis.close();

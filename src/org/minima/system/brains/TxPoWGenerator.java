@@ -55,9 +55,23 @@ public class TxPoWGenerator {
 		
 		//Set the block number
 		txpow.setBlockNumber(tip.getTxPoW().getBlockNumber().increment());
-			
+		
+		//What is the millitime..
+		MiniNumber millitime = new MiniNumber(System.currentTimeMillis());
+		
+		//Check TimeMilli is acceptable..
+		MiniNumber mintime 	= getMedianTimeBlock(tip, GlobalParams.MEDIAN_BLOCK_CALC*2).getTxPoW().getTimeMilli();
+		MiniNumber maxtime 	= mintime.add(TxPoWChecker.MAX_TIME_FUTURE); 
+		if(millitime.isLess(mintime)) {
+			MinimaLogger.log("NEW TxPoW time too far back.. setting minimum");
+			millitime = mintime.add(new MiniNumber(1000*50));
+		}else if(millitime.isMore(maxtime)) {
+			MinimaLogger.log("NEW TxPoW time too far in future.. setting maximum");
+			millitime = maxtime;
+		}
+		
 		//Set the current time
-		txpow.setTimeMilli( new MiniNumber(System.currentTimeMillis()) );
+		txpow.setTimeMilli( millitime );
 		
 		//Set the Transaction..
 		txpow.setTransaction(zTransaction);
@@ -156,40 +170,67 @@ public class TxPoWGenerator {
 			
 			//Start off assuming it's valid
 			boolean valid = true;
+			
 			try {
 				
-				//Input coin checkers - For the CoinProofs as CoinID may be ELTOO
-				ArrayList<CoinProof> inputs;
-				
-				//Check CoinIDs not added already.. for Transaction
-				inputs = memtxp.getWitness().getAllCoinProofs();
-				for(CoinProof proof : inputs) {
-					if(addedcoins.contains(proof.getCoin().getCoinID().to0xString())) {
-						//Coin already added in previous TxPoW
-						continue;
-					}
-				}
-				
-				//Check CoinIDs not added already.. for Burn Transaction
-				inputs = memtxp.getBurnWitness().getAllCoinProofs();
-				for(CoinProof proof : inputs) {
-					if(addedcoins.contains(proof.getCoin().getCoinID().to0xString())) {
-						//Coin already added in previous TxPoW
-						continue;
-					}
-				}
-				
-				//Check against the Magic Numbers
-				if(memtxp.getSizeinBytesWithoutBlockTxns() > txpowmagic.getMaxTxPoWSize().getAsLong()) {
-					MinimaLogger.log("Mempool txn too big.. "+memtxp.getTxPoWID());
-					valid = false;
-				}else if(memtxp.getTxnDifficulty().isMore(txpowmagic.getMinTxPowWork())) {
-					MinimaLogger.log("Mempool txn TxPoW too low.. "+memtxp.getTxPoWID());
+				//Check how many times we have checked this TxPoW - and rejected it
+				if(memtxp.getCheckRejectNumber()>3) {
+					//No good..
+					MinimaLogger.log("TxPoW checked too many times.. "+memtxp.getTxPoWID());
 					valid = false;
 				}
 				
+				//Are we still valid and checkabnle
+				if(valid) {
+					
+					//Input coin checkers - For the CoinProofs as CoinID may be ELTOO
+					ArrayList<CoinProof> inputs;
+					
+					//Did we find this coin..
+					boolean found = false;
+					
+					//Check CoinIDs not added already.. for Transaction
+					inputs = memtxp.getWitness().getAllCoinProofs();
+					for(CoinProof proof : inputs) {
+						if(addedcoins.contains(proof.getCoin().getCoinID().to0xString())) {
+							//Coin already added in previous TxPoW
+							found = true;
+							break;
+						}
+					}
+					
+					//Check CoinIDs not added already.. for Burn Transaction
+					if(!found) {
+						inputs = memtxp.getBurnWitness().getAllCoinProofs();
+						for(CoinProof proof : inputs) {
+							if(addedcoins.contains(proof.getCoin().getCoinID().to0xString())) {
+								//Coin already added in previous TxPoW
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					//Did we find it..
+					if(found) {
+						//Checked and already added
+						memtxp.incrementCheckRejectNumber();
+						continue;
+					}
+				
+					//Check against the Magic Numbers
+					if(memtxp.getSizeinBytesWithoutBlockTxns() > txpowmagic.getMaxTxPoWSize().getAsLong()) {
+						MinimaLogger.log("Mempool txn too big.. "+memtxp.getTxPoWID());
+						valid = false;
+					}else if(memtxp.getTxnDifficulty().isMore(txpowmagic.getMinTxPowWork())) {
+						MinimaLogger.log("Mempool txn TxPoW too low.. "+memtxp.getTxPoWID());
+						valid = false;
+					}
+				}
+			
 				//Check if Valid!
 				if(valid && TxPoWChecker.checkTxPoWSimple(tip.getMMR(), memtxp, txpow)) {
+					
 					//Add to our list
 					chosentxns.add(memtxp);
 					
@@ -210,8 +251,12 @@ public class TxPoWGenerator {
 					for(CoinProof cc : memtxpinputcoins) {
 						addedcoins.add(cc.getCoin().getCoinID().to0xString());
 					}	
+					
+				}else {
+					//Checked and something wrong..
+					memtxp.incrementCheckRejectNumber();
 				}
-				
+						
 			}catch(Exception exc) {
 				MinimaLogger.log("ERROR Checking TxPoW "+memtxp.getTxPoWID()+" "+exc.toString());
 				valid = false;

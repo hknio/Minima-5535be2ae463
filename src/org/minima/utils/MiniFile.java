@@ -11,9 +11,30 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 import org.minima.objects.base.MiniData;
+import org.minima.system.params.GeneralParams;
 
 public class MiniFile {
-
+	
+	
+	public static File createBaseFile(String zFilename) {
+		
+		//Does the name have any slashes in it..
+		if(zFilename.contains(File.separator) || zFilename.contains("\\") || zFilename.contains("/")) {
+			
+			//It's trying to be an absolute path
+			return new File(zFilename);
+		}
+		
+		//HAve we specified a base folder
+		if(GeneralParams.BASE_FILE_FOLDER.equals("")) {
+			
+			//Use the default location
+			return  new File(zFilename);
+		}
+		
+		return new File(GeneralParams.BASE_FILE_FOLDER,zFilename);
+	}
+	
 	
 	public static void writeDataToFile(File zFile, byte[] zData) throws IOException {
 		writeDataToFile(zFile, zData, false);

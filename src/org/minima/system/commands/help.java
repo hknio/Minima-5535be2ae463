@@ -1,6 +1,7 @@
 package org.minima.system.commands;
 
-import org.minima.system.commands.base.backup;
+import org.minima.system.commands.backup.backup;
+import org.minima.system.commands.backup.restore;
 import org.minima.system.commands.base.balance;
 import org.minima.system.commands.base.burn;
 import org.minima.system.commands.base.coinexport;
@@ -17,8 +18,8 @@ import org.minima.system.commands.base.newaddress;
 import org.minima.system.commands.base.printtree;
 import org.minima.system.commands.base.quit;
 import org.minima.system.commands.base.random;
-import org.minima.system.commands.base.restore;
 import org.minima.system.commands.base.send;
+import org.minima.system.commands.base.sendpoll;
 import org.minima.system.commands.base.status;
 import org.minima.system.commands.base.tokencreate;
 import org.minima.system.commands.base.tokenvalidate;
@@ -28,12 +29,7 @@ import org.minima.system.commands.base.vault;
 import org.minima.system.commands.maxima.maxcontacts;
 import org.minima.system.commands.maxima.maxima;
 import org.minima.system.commands.mds.mds;
-import org.minima.system.commands.network.connect;
-import org.minima.system.commands.network.disconnect;
-import org.minima.system.commands.network.message;
-import org.minima.system.commands.network.network;
-import org.minima.system.commands.network.rpc;
-import org.minima.system.commands.network.webhooks;
+import org.minima.system.commands.network.*;
 import org.minima.system.commands.scripts.newscript;
 import org.minima.system.commands.scripts.runscript;
 import org.minima.system.commands.scripts.scripts;
@@ -89,6 +85,7 @@ public class help extends Command {
 		addCommand(details, new getaddress());
 		addCommand(details, new newaddress());
 		addCommand(details, new send());
+		addCommand(details, new sendpoll());
 		addCommand(details, new balance());
 		addCommand(details, new tokencreate());
 		addCommand(details, new tokenvalidate());
@@ -147,7 +144,8 @@ public class help extends Command {
 		addCommand(details, new vault());
 		addCommand(details, new restore());
 		addCommand(details, new incentivecash());
-		
+
+		addCommand(details, new nodecount());
 		addCommand(details, new quit());
 		
 		ret.put("response", details);
@@ -157,7 +155,7 @@ public class help extends Command {
 
 	
 	private void addCommand(JSONObject zDetails, Command zCommand) {
-		zDetails.put(getStrOfLength(15,zCommand.getname()), zCommand.getHelp());
+		zDetails.put(getStrOfLength(15,zCommand.getName()), zCommand.getHelp());
 	}
 	
 	public String getStrOfLength(int zDesiredLen, String zString) {

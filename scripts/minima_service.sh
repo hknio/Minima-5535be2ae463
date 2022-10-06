@@ -5,6 +5,7 @@ PATH=/sbin:/bin:/usr/bin
 CLEAN_FLAG=''
 PORT=''
 HOST=''
+MDSPWD=''
 HOME="/home/minima"
 CONNECTION_HOST=''
 CONNECTION_PORT=''
@@ -25,6 +26,7 @@ while getopts ':xsc::p:r:d:h:' flag; do
     p) PORT="${OPTARG}";;
     d) HOME="${OPTARG}";;
     h) HOST="${OPTARG}";;
+    w) MDSPWD="${OPTARG}";;
     *) print_usage
        exit 1 ;;
   esac
@@ -46,6 +48,7 @@ if ! id -u 9001 > /dev/null 2>&1; then
     mkdir $HOME
     chown minima:minima $HOME
 fi
+
 
 
 if [ ! $PORT ]; then
@@ -85,9 +88,13 @@ fi
 
 echo "[+] Creating service minima_$PORT"
 
-MINIMA_PARAMS="-daemon -port $PORT -data $HOME/.minima_$PORT"
+MINIMA_PARAMS="-daemon -rpcenable -mdsenable -port $PORT -data $HOME/.minima_$PORT"
 if [ $CLEAN_FLAG ]; then
   MINIMA_PARAMS="$MINIMA_PARAMS -clean"
+fi
+
+if [ -z "$MDSPWD" ]; then
+  MINIMA_PARAMS="$MINIMA_PARAMS -mdspassword $MDSPWD"
 fi
 
 
@@ -99,17 +106,13 @@ if [ $HOST ]; then
   MINIMA_PARAMS="$MINIMA_PARAMS -host $HOST"
 fi
 
-if [ $RPC ]; then
-  MINIMA_PARAMS="$MINIMA_PARAMS -rpcenable -rpc $RPC"
-fi
-
 tee <<EOF >/dev/null /etc/systemd/system/minima_$PORT.service
 [Unit]
 Description=minima_$PORT
 [Service]
 User=minima
 Type=simple
-ExecStart=/usr/bin/java -Xmx1G -jar $HOME/$MINIMA_JAR_NAME $MINIMA_PARAMS
+ExecStart=/usr/bin/java -jar $HOME/$MINIMA_JAR_NAME $MINIMA_PARAMS
 Restart=always
 RestartSec=100
 [Install]

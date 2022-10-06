@@ -8,7 +8,7 @@ public class GeneralParams {
 	public static boolean IS_MOBILE = false;
 	
 	/**
-	 * Can you accpet incoming connections.. 
+	 * Can you accept incoming connections.. 
 	 */
 	public static boolean IS_ACCEPTING_IN_LINKS = true;
 	
@@ -26,6 +26,11 @@ public class GeneralParams {
 	 * Where are the database files stored. This is set at startup.
 	 */
 	public static String DATA_FOLDER = "";
+	
+	/**
+	 * Default backup / restore / file creation  folder
+	 */
+	public static String BASE_FILE_FOLDER = "";
 	
 	/**
 	 * The Host IP
@@ -56,6 +61,21 @@ public class GeneralParams {
 	 * The MDS Command Server
 	 */
 	public static int MDSCOMMAND_PORT = MINIMA_PORT+3;
+	
+	/**
+	 * The MDS Password - blank will set automagically
+	 */
+	public static String MDS_PASSWORD = "";
+	
+	/**
+	 * A folder of MDS dapps to install at startup
+	 */
+	public static String MDS_INITFOLDER = "";
+	
+	/**
+	 * Make a MiniDAPP WRITE access - on init install
+	 */
+	public static String MDS_WRITE = "";
 	
 	/**
 	 * MDS ENabled
@@ -91,6 +111,14 @@ public class GeneralParams {
 	 * Manual list of Minima nodes to connect to
 	 */
 	public static String CONNECT_LIST = "";
+	
+	/**
+	 * MySQL Archive Settings
+	 */
+	public static String MYSQL_HOST 	= "";
+	public static String MYSQL_DB 		= "";
+	public static String MYSQL_USER 	= "";
+	public static String MYSQL_PASSWORD = "";
 	
 	/**
 	 * How many days do you keep the TxPoW in the SQL DB

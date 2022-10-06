@@ -264,6 +264,27 @@ public class NIOMessage implements Runnable {
 				//IBD received..
 				IBD ibd = IBD.ReadFromStream(dis);
 				
+				//Check Seems Valid..
+				if(!ibd.checkValidData()) {
+					
+					//Disconnect
+					Main.getInstance().getNIOManager().disconnect(mClientUID);
+					
+					return;
+				}
+				
+				//Is it a complete IBD even though we have a cascade
+				if(MinimaDB.getDB().getCascade().getLength()>0 && ibd.hasCascadeWithBlocks()) {
+					
+					boolean heavier = IBD.checkOurChainHeavier(ibd);
+					
+					if(!heavier) {
+						MinimaLogger.log("[!] CONNECTED TO HEAVIER CHAIN.. from "+mClientUID);
+					}
+					
+					return;
+				}
+				
 				//A small message..
 				MinimaLogger.log("[+] Connected to the blockchain Initial Block Download received. size:"+MiniFormat.formatSize(data.length)+" blocks:"+ibd.getTxBlocks().size());
 				
@@ -397,6 +418,7 @@ public class NIOMessage implements Runnable {
 				//Check for mempool coins..
 				if(TxPoWChecker.checkMemPoolCoins(txpow)) {
 					//Same coins in different transaction - could have been requested by us from branch
+					MinimaLogger.log("TxPoW with existing mempoolcoins "+txpow.getTxPoWID());
 					fullyvalid = false;
 				}
 				
@@ -433,10 +455,12 @@ public class NIOMessage implements Runnable {
 						}
 					}
 					
-					//Get the parent if we don't have it..
-					exists = MinimaDB.getDB().getTxPoWDB().exists(txpow.getParentID().to0xString());
-					if(!exists) {
-						NIOManager.sendNetworkMessage(mClientUID, MSG_TXPOWREQ, txpow.getParentID());
+					//Get the parent if we don't have it.. and is in front of our cascade
+					if(block.isMoreEqual(cascadeblock)) {
+						exists = MinimaDB.getDB().getTxPoWDB().exists(txpow.getParentID().to0xString());
+						if(!exists) {
+							NIOManager.sendNetworkMessage(mClientUID, MSG_TXPOWREQ, txpow.getParentID());
+						}
 					}
 				}
 				
@@ -640,7 +664,7 @@ public class NIOMessage implements Runnable {
 					pinggreet.getExtraData().put("topblock", tip.getBlockNumber().toString());
 					pinggreet.getExtraData().put("tophash", tip.getTxPoW().getTxPoWID());
 					
-					TxPoWTreeNode tip50 = tip.getParent(50);
+					TxPoWTreeNode tip50 = tip.getParent(100);
 					pinggreet.getExtraData().put("50block", tip50.getBlockNumber().toString());
 					pinggreet.getExtraData().put("50hash", tip50.getTxPoW().getTxPoWID());
 				}else {
@@ -655,12 +679,14 @@ public class NIOMessage implements Runnable {
 					
 					//Get the peers list
 					P2PManager p2PManager 	= (P2PManager) Main.getInstance().getNetworkManager().getP2PManager();
-					JSONArray peers 		= InetSocketAddressIO.addressesListToJSONArray(new ArrayList<>(p2PManager.getPeers()));
+					JSONArray peers 		= InetSocketAddressIO.addressesListToJSONArray(p2PManager.getPeersCopy());
 					pinggreet.getExtraData().put("peers-list", peers);
+					pinggreet.getExtraData().put("clients", p2PManager.getClients());
 					
 				}else {
 					//No peers..
 					pinggreet.getExtraData().put("peers-list", new JSONArray());
+					pinggreet.getExtraData().put("clients", 0);
 				}
 				
 				//Send this back to them.. 

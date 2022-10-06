@@ -68,7 +68,6 @@ public class ParamConfigurer {
                 .entrySet().stream()
                 .filter(e -> toParamKey(e.getKey()).isPresent())
                 .collect(toMap(entry -> toParamKey(entry.getKey()).get(), Map.Entry::getValue)));
-
         return this;
     }
 
@@ -84,6 +83,10 @@ public class ParamConfigurer {
                                 lookAheadToNonParamKeyArg(programArgs, imuCounter).orElse("true")));
                 index++;
             }
+        MinimaLogger.log("Config Parameters");
+        for (Map.Entry<ParamKeys, String> entry : paramKeysToArg.entrySet()) {
+            MinimaLogger.log(entry.getKey() + ":" + entry.getValue());
+        }
         return this;
     }
 
@@ -133,6 +136,14 @@ public class ParamConfigurer {
     		//Set this globally
     		GeneralParams.DATA_FOLDER 	= minimafolder.getAbsolutePath();
         }),
+    	basefolder("basefolder", "Specify a default file creation / backup / restore folder", (args, configurer) -> {
+    		//Get that folder
+    		File backupfolder 	= new File(args);
+    		backupfolder.mkdirs();
+    		
+    		//Set this globally
+    		GeneralParams.BASE_FILE_FOLDER = backupfolder.getAbsolutePath();
+        }),
     	host("host", "Specify the host IP", (arg, configurer) -> {
             GeneralParams.MINIMA_HOST = arg;
             GeneralParams.IS_HOST_SET = true;
@@ -160,6 +171,19 @@ public class ParamConfigurer {
             	GeneralParams.MDS_ENABLED = true;
             }
         }),
+        mdspassword("mdspassword", "Specify the Minima MDS password", (arg, configurer) -> {
+            GeneralParams.MDS_PASSWORD = arg.trim();
+        }),
+        mdsinit("mdsinit", "Specify a folder of MiniDAPPs", (arg, configurer) -> {
+        	//Get that folder
+    		File initFolder 	= new File(arg);
+    		initFolder.mkdirs();
+    		
+        	GeneralParams.MDS_INITFOLDER= initFolder.getAbsolutePath();
+        }),
+        mdswrite("mdswrite", "Make an init MiniDAPP WRITE access", (arg, configurer) -> {
+        	GeneralParams.MDS_WRITE= arg;
+        }),
         conf("conf", "Specify a configuration file (absolute)", (args, configurer) -> {
             // do nothing
         }),
@@ -172,6 +196,17 @@ public class ParamConfigurer {
             if ("true".equals(args)) {
                 GeneralParams.IS_ACCEPTING_IN_LINKS = false;
             }
+        }),
+        desktop("desktop", "Use Desktop settings - this node can't accept incoming connections", (args, configurer) -> {
+            if ("true".equals(args)) {
+                GeneralParams.IS_ACCEPTING_IN_LINKS = false;
+            }
+        }),
+        server("server", "Use Server settings - this node can accept incoming connections", (args, configurer) -> {
+        	GeneralParams.IS_ACCEPTING_IN_LINKS = true;
+//        	if ("true".equals(args)) {
+//                GeneralParams.IS_ACCEPTING_IN_LINKS = false;
+//            }
         }),
         mobile("mobile", "Sets this device to a mobile device - used for metrics only", (args, configurer) -> {
             if ("true".equals(args)) {
@@ -214,6 +249,18 @@ public class ParamConfigurer {
             if ("true".equals(args)) {
                 GeneralParams.CLEAN = true;
             }
+        }),
+        mysqlhost("mysqlhost", "Store all archive data in a MySQL DB", (args, configurer) -> {
+            GeneralParams.MYSQL_HOST = args;
+        }),
+        mysqldb("mysqldb", "The MySQL Database", (args, configurer) -> {
+        	GeneralParams.MYSQL_DB = args;
+        }),
+        mysqluser("mysqluser", "The MySQL User", (args, configurer) -> {
+        	GeneralParams.MYSQL_USER = args;
+        }),
+        mysqlpassword("mysqlpassword", "The MySQL Password", (args, configurer) -> {
+        	GeneralParams.MYSQL_PASSWORD = args;
         }),
         genesis("genesis", "Create a genesis block, -clean and -automine", (args, configurer) -> {
             if ("true".equals(args)) {
